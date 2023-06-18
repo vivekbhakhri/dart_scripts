@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:archive/archive.dart';
 
 void unzipAndRezip(String filePath) {
   final originalFile = File(filePath);
@@ -6,27 +7,47 @@ void unzipAndRezip(String filePath) {
 
   // Create a directory to extract the files
   final extractionPath =
-      Directory('${originalFile.parent.path}/$originalFileName');
+      Directory('${originalFile.parent.path}/$originalFileName-extracted');
   extractionPath.createSync();
 
   // Unzip the original file
-  Process.runSync(
-      'unzip', ['-q', '-d', extractionPath.path, originalFile.path]);
+  final zipFile = ZipDecoder().decodeBytes(originalFile.readAsBytesSync());
+  for (final file in zipFile) {
+    final extractedPath = '${extractionPath.path}/${file.name}';
+    if (file.isFile) {
+      final data = file.content as List<int>;
+      File(extractedPath)
+        ..createSync(recursive: true)
+        ..writeAsBytesSync(data);
+    } else {
+      Directory(extractedPath)..createSync(recursive: true);
+    }
+  }
 
   // Remove the original file
   originalFile.deleteSync();
 
   // Re-zip the extracted files
-  final extractedFiles = extractionPath.listSync(recursive: true);
-  final rezipFilePath = '${extractionPath.parent.path}/$originalFileName';
-  Process.runSync('zip', ['-q', '-r', rezipFilePath, '.'],
-      workingDirectory: extractionPath.path);
+  final rezipFilePath = '${originalFile.parent.path}/$originalFileName';
+  final rezipArchive = Archive();
+
+  for (final entity in extractionPath.listSync(recursive: true)) {
+    if (entity is File) {
+      final filePath = entity.path.substring(extractionPath.path.length + 1);
+      final fileData = entity.readAsBytesSync();
+      rezipArchive.addFile(ArchiveFile(filePath, fileData.length, fileData));
+    }
+  }
+
+  // Write the re-zipped archive to a new file
+  final rezipBytes = ZipEncoder().encode(rezipArchive);
+  File(rezipFilePath).writeAsBytesSync(rezipBytes!);
 
   // Remove the extracted files directory
   extractionPath.deleteSync(recursive: true);
 }
 
 void main() {
-  final filePath = 'path/to/your/archive.zip';
+  final filePath = 'Warp.zip';
   unzipAndRezip(filePath);
 }

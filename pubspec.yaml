@@ -1,0 +1,6 @@
+name: rezip
+
+environment:
+  sdk: '2.12.0'
+dependencies:
+  archive: ^3.3.7
