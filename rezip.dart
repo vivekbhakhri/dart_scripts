@@ -27,8 +27,9 @@ void unzipAndRezip(String filePath) {
   // Remove the original file
   originalFile.deleteSync();
 
-  // Re-zip the extracted files
+  // Re-zip the extracted files with compression
   final rezipFilePath = '${originalFile.parent.path}/$originalFileName';
+  final encoder = ZipEncoder();
   final rezipArchive = Archive();
 
   for (final entity in extractionPath.listSync(recursive: true)) {
@@ -39,8 +40,7 @@ void unzipAndRezip(String filePath) {
     }
   }
 
-  // Write the re-zipped archive to a new file
-  final rezipBytes = ZipEncoder().encode(rezipArchive);
+  final rezipBytes = encoder.encode(rezipArchive);
   File(rezipFilePath).writeAsBytesSync(rezipBytes!);
 
   // Remove the extracted files directory
